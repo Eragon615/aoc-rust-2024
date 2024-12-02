@@ -1,5 +1,5 @@
 use crate::Application;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 impl Application {
     pub fn day1(self) {
@@ -38,7 +38,7 @@ impl Application {
             right.push(split.next().unwrap().parse().unwrap());
         }
 
-        let mut lookup = HashMap::new();
+        let mut lookup = BTreeMap::new();
         let mut answer = 0;
         
         for left_number in left {

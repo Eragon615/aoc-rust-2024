@@ -1,113 +1,86 @@
-use std::{collections::HashMap, u32};
-
 use crate::Application;
 
-#[derive(Debug)]
-struct Cubes {
-    red: u32,
-    green: u32,
-    blue: u32,
-}
-
-type CubeHash = HashMap<u32, Vec<Cubes>>;
 
 impl Application {
     pub fn day2(self) {
-        let map = input_to_hash(&self.input);
         if self.args.part == 1 {
-            self.d2p1(map);
+            self.d2p1();
         } else {
-            self.d2p2(map);
+            self.d2p2();
         }
     }
 
-    fn d2p1(self, map: CubeHash) {
-        const CUBES_TO_TEST: Cubes = Cubes {
-            red: 12,
-            green: 13,
-            blue: 14,
-        };
-        let mut answer = 0;
-
-        for (num, entries) in map {
-            if entries_are_valid(CUBES_TO_TEST, entries) {
-                answer += num;
+    fn d2p1(self) {
+        let mut levels: Vec<Vec<i32>> = Vec::new();
+        for i in 0..self.input.len() {
+            levels.push(Vec::new());
+            let mut line = self.input[i].split_whitespace();
+            while let Some(value) = line.next() {
+                levels[i].push(value.parse().unwrap());
             }
         }
-        println!("{}", answer);
-    }
-
-    fn d2p2(self, map: CubeHash) {
-        let mut answer = 0;
-        for (_num, entries) in map {
-            let power = find_power(entries);
-            answer += power;
+        let mut answer = 0; 
+        for reading in levels {
+            let mut valid = true;
+            let mut sign = None;
+            for i in 1..reading.len() {
+                let variance = reading[i] - reading[i-1];
+                match sign {
+                    None => {sign = Some(variance.signum())},
+                    Some(pos_neg) => {
+                        if pos_neg != variance.signum() {
+                            valid = false;
+                        };
+                    }
+                };
+                if variance.abs() != 1 && variance.abs() != 2 && variance.abs() != 3 {
+                    valid = false;
+                }
+            }
+            if valid {
+                answer += 1;
+            }
         }
         println!("{answer}");
     }
-}
 
-fn input_to_hash(input: &Vec<String>) -> CubeHash {
-    let mut output = HashMap::new();
-    for line in input {
-        let line = line.clone();
-        let game_and_cubes: Vec<&str> = line.split(":").collect();
-        let game_str = game_and_cubes[0];
-        let game_num: u32 = game_str.split_whitespace().collect::<Vec<&str>>()[1]
-            .parse()
-            .expect("I messed up!");
-        let cubes_str = game_and_cubes[1];
-        let mut cubes_vec: Vec<Cubes> = Vec::new();
-        for set in cubes_str.split(";").collect::<Vec<&str>>() {
-            let mut red = 0;
-            let mut blue = 0;
-            let mut green = 0;
-            for color in set.split(",").collect::<Vec<&str>>() {
-                let split = color.split_whitespace().collect::<Vec<&str>>();
-                let name = split[1];
-                let number: u32 = split[0].parse().expect("I screwed up somewhere");
-                if name == "red" {
-                    red = number;
-                } else if name == "green" {
-                    green = number;
-                } else if name == "blue" {
-                    blue = number;
+    fn d2p2(self) {
+        let mut levels: Vec<Vec<i32>> = Vec::new();
+        for i in 0..self.input.len() {
+            levels.push(Vec::new());
+            let mut line = self.input[i].split_whitespace();
+            while let Some(value) = line.next() {
+                levels[i].push(value.parse().unwrap());
+            }
+        }
+        let mut answer = 0; 
+        for reading in levels {
+            let mut bad_level = 0;
+            let mut positives = 0;
+            let mut negatives = 0;
+            let mut valid = true;
+            for i in 1..reading.len() {
+                let variance = reading[i] - reading[i-1];
+                if variance.signum() == 1 {
+                    positives += 1;
+                } else {
+                    negatives += 1;
+                }
+                if variance.abs() != 1 && variance.abs() != 2 && variance.abs() != 3 {
+                    bad_level += 1;
                 }
             }
-            cubes_vec.push(Cubes { red, green, blue });
+            let sign_change:i32 = positives - negatives;
+            if sign_change.abs() == reading.len() as i32 && bad_level <= 1 {
+            } else if reading.len() as i32 - sign_change.abs() == 1  && bad_level == 0 {
+            } else {
+                valid = false;
+            }
+            println!("{reading:?} {sign_change} {bad_level}");
+            if valid {
+                answer += 1;
+            }
         }
-        output.insert(game_num, cubes_vec);
+        println!("{answer}");
     }
-    return output;
-}
-
-fn entries_are_valid(test: Cubes, entries: Vec<Cubes>) -> bool {
-    for entry in entries {
-        if test.red < entry.red || test.green < entry.green || test.blue < entry.blue {
-            return false;
-        }
-    }
-    return true;
-}
-
-fn find_power(entries: Vec<Cubes>) -> u64 {
-    // first, find the lowest possible needed for each of the games.
-    let mut lowest = Cubes {
-        red: 0,
-        green: 0,
-        blue: 0,
-    };
-    for cubes in entries {
-        if lowest.red < cubes.red {
-            lowest.red = cubes.red;
-        }
-        if lowest.green < cubes.green {
-            lowest.green = cubes.green;
-        }
-        if lowest.blue < cubes.blue {
-            lowest.blue = cubes.blue;
-        }
-    }
-    let output = lowest.red * lowest.green * lowest.blue;
-    return output as u64;
 }
