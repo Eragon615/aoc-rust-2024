@@ -1,150 +1,143 @@
-use std::ops::RangeInclusive;
+use std::{borrow::Borrow, ops::Index};
 
 use crate::Application;
 
-struct Diagram {
-    symbols: Vec<Symbol>,
-    numbers: Vec<Number>,
+#[derive(Debug, PartialEq)]
+enum TokenType {
+    Keyword,
+    OpenParen,
+    Number,
+    Comma,
+    CloseParen,
+    Other
 }
 
-#[derive(Debug, Clone)]
-struct Symbol {
-    glyph: char,
-    x_coord: usize,
-    y_coord: usize,
+#[derive(Debug, PartialEq)]
+struct Token {
+    token_type: TokenType,
+    value: String,
 }
 
-#[derive(Debug, Clone)]
-struct Number {
-    value: u64,
-    length: usize,
-    x_coord: usize, // The starting coord, plus the length if more than one digit
-    y_coord: usize,
+impl Token {
+    fn new(token_type: TokenType, value: String) -> Self {
+        Token { token_type, value }
+    }
+}
+
+struct Tokenizer {
+    input: String,
+    position: usize,
+}
+
+impl Tokenizer {
+    fn new(input: String) -> Self {
+        Tokenizer { input, position: 0 }
+    }
+
+    fn get_next_token(&mut self) -> Option<Token> {
+        if self.position >= self.input.len() {
+            return None;
+        }
+        let current_char = self.input.chars().nth(self.position).unwrap();
+        if current_char == 'm' {
+            return self.collect_keyword();
+        } else if current_char.is_numeric() {
+            return self.collect_number();
+        } else if current_char == ',' {
+            self.position += 1;
+            return Some(Token::new(TokenType::Comma, ','.to_string()))
+        } else if current_char == '(' {
+            self.position += 1;
+            return Some(Token::new(TokenType::OpenParen, '('.to_string()))
+        } else if current_char == ')' {
+            self.position += 1;
+            return Some(Token::new(TokenType::CloseParen, ')'.to_string()))
+        } else {
+            self.position += 1;
+            return Some(Token::new(TokenType::Other, current_char.to_string()));
+        }
+    }
+
+    fn collect_keyword(&mut self) -> Option<Token> {
+        let start_pos = self.position;
+        while self.position < self.input.len() && self.input.chars().nth(self.position).unwrap().is_alphabetic() {
+            self.position += 1;
+        }
+        let word = self.input[start_pos..self.position].to_string();
+        if word == "mul".to_string() {
+            return Some(Token::new(TokenType::Keyword, word));
+        }
+        return Some(Token::new(TokenType::Other, word));
+    }
+
+    fn collect_number(&mut self) -> Option<Token> {
+        let start_pos = self.position;
+        while self.position < self.input.len() && self.input.chars().nth(self.position).unwrap().is_numeric() {
+            self.position += 1;
+        }
+        Some(Token::new(TokenType::Number, self.input[start_pos..self.position].to_string()))
+    }
+
+    fn tokenize(&mut self) -> Vec<Token> {
+        let mut tokens = Vec::new();
+        while let Some(token) = self.get_next_token() {
+            tokens.push(token);
+        }
+        tokens
+    }
+
 }
 
 impl Application {
     pub fn day3(self) {
-        let diagram = map_input(&self.input);
         if self.args.part == 1 {
-            self.d3p1(diagram);
+            self.d3p1();
         } else {
-            self.d3p2(diagram);
+            self.d3p2();
         }
     }
 
-    fn d3p1(self, diagram: Diagram) {
-        let mut number_list = Vec::new();
-        for symbol in &diagram.symbols {
-            number_list.append(&mut find_adjacent_numbers(&diagram.numbers, symbol));
-        }
+    fn d3p1(self) {
+        let giant_string = self.input.into_iter().collect::<String>();
         let mut answer = 0;
-        for number in number_list {
-            answer += number.value;
-        }
-        println!("{answer}");
-    }
-
-    fn d3p2(self, diagram: Diagram) {
-        let possible_gears: Vec<Symbol> = diagram
-            .symbols
-            .clone()
-            .into_iter()
-            .filter(|s| s.glyph == '*')
-            .collect();
-        let mut answer = 0;
-        for gear in possible_gears {
-            let adjacent_numbers = find_adjacent_numbers(&diagram.numbers, &gear);
-            if adjacent_numbers.len() == 2 {
-                answer += adjacent_numbers[0].value * adjacent_numbers[1].value;
+        let mut tokenizer = Tokenizer::new(giant_string);
+        let tokens = tokenizer.tokenize();
+        for (idx, token) in tokens.iter().enumerate() {
+            if idx > (tokens.len() - 6) {
+                break;
             }
-        }
-        println!("{answer}");
-    }
-}
-
-fn map_input(input: &Vec<String>) -> Diagram {
-    let mut symbols_out: Vec<Symbol> = Vec::new();
-    let mut numbers_out: Vec<Number> = Vec::new();
-    for y in 0..input.len() {
-        let line = input[y].chars().collect::<Vec<char>>();
-        let mut advencer = 0;
-        for x in 0..line.len() {
-            if advencer > 0 {
-                advencer -= 1;
-                continue;
-            }
-            if line[x] == '.' {
-                continue;
-            }
-            if line[x].is_numeric() {
-                let mut num_str = Vec::new();
-                num_str.push(line[x].clone());
-                check_next(&line, x, &mut num_str);
-                advencer = num_str.len() - 1; // if we got more than one digit, skip them
-                let num = num_str
-                    .iter()
-                    .collect::<String>()
-                    .parse()
-                    .expect("Oops, I screwed something up");
-                numbers_out.push(Number {
-                    value: num,
-                    length: num_str.len(),
-                    x_coord: x,
-                    y_coord: y,
-                })
-            } else {
-                symbols_out.push(Symbol {
-                    glyph: line[x].clone(),
-                    x_coord: x,
-                    y_coord: y,
-                })
-            }
-        }
-    }
-    return Diagram {
-        symbols: symbols_out,
-        numbers: numbers_out,
-    };
-}
-
-fn check_next(line: &Vec<char>, pos: usize, num_str: &mut Vec<char>) -> () {
-    if line.len() <= pos + 1 {
-        return; // make sure we don't index out of bounds
-    }
-    if line[pos + 1].is_numeric() {
-        num_str.push(line[pos + 1].clone());
-        check_next(&line, pos + 1, num_str);
-    }
-}
-
-fn find_adjacent_numbers(num_list: &Vec<Number>, symbol: &Symbol) -> Vec<Number> {
-    let output: Vec<Number> = num_list
-        .clone()
-        .into_iter()
-        .filter(|number| {
-            (minus_one_or(symbol.y_coord)..=(symbol.y_coord + 1)).contains(&number.y_coord)
-        })
-        .filter(|number| number.range_check(minus_one_or(symbol.x_coord)..=(symbol.x_coord + 1)))
-        .collect();
-    return output;
-}
-
-impl Number {
-    fn range_check(&self, range: RangeInclusive<usize>) -> bool {
-        for sym_coord in range {
-            for num_coord in self.x_coord..(self.x_coord + self.length) {
-                if num_coord == sym_coord {
-                    return true;
+            if token.token_type == TokenType::Keyword {
+                if check_sequence(tokens[idx..=(idx + 5)].try_into().unwrap()) {
+                    answer += tokens[idx + 2].value.parse::<i32>().unwrap() * tokens[idx + 4].value.parse::<i32>().unwrap();
                 }
             }
         }
-        return false;
+        println!("{answer}");
+    }
+
+    fn d3p2(self) {
+
     }
 }
 
-fn minus_one_or(input: usize) -> usize {
-    if input == 0 {
-        return 0;
+fn check_sequence(next_six: &[Token;6]) -> bool {
+    if next_six[0].token_type != TokenType::Keyword {
+        return false;
     }
-    return input - 1;
+    if next_six[1].token_type != TokenType::OpenParen {
+        return false;
+    }
+    if next_six[2].token_type != TokenType::Number {
+        return false;
+    }
+    if next_six[3].token_type != TokenType::Comma {
+        return false;
+    }
+    if next_six[4].token_type != TokenType::Number {
+        return false;
+    }
+    if next_six[5].token_type != TokenType::CloseParen {
+        return false;
+    }
+    return true;
 }
