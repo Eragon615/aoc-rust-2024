@@ -13,7 +13,7 @@ impl Application {
     }
 
     fn d4p1(self, char_map: CharMap) {
-        let answer = char_map.occurances("XMAS");
+        let answer = char_map.occurances("XMAS").len();
         println!("{answer}");
     }
 
@@ -22,7 +22,18 @@ impl Application {
         for row in 0..char_map.map.len() {
             for column in 0..char_map.map[row].len() {
                 if char_map.map[row][column] == 'A' {
-                    if char_map.find_from_char("MAS", 1, row, column) >= 2 {
+                    if char_map.find_from_char("MAS", 1, row, column)
+                        .iter()
+                        .filter(
+                            |dir| match dir {
+                                Direction::NorthEast => true,
+                                Direction::NorthWest => true,
+                                Direction::SouthEast => true,
+                                Direction::SouthWest => true,
+                                _ => false
+                            })
+                        .collect::<Vec<&Direction>>()
+                        .len() >= 2 {
                         answer +=1
                     }
                     

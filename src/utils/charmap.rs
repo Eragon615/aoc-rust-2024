@@ -5,8 +5,8 @@ pub struct CharMap {
     pub map: Vec<Vec<char>>
 }
 
-#[derive(Debug)]
-enum Direction {
+#[derive(Debug, Clone, Copy)]
+pub enum Direction {
     North,
     NorthEast,
     East, 
@@ -77,38 +77,38 @@ impl CharMap {
         self.map.len()
     }
 
-    pub fn occurances(&self, search: &str) -> usize {
+    pub fn occurances(&self, search: &str) -> Vec<Direction> {
         let first_letter: char = search.chars().nth(0).expect("No first letter in search.");
-        let mut output = 0;
+        let mut output = Vec::new();
         for row in 0..self.right_bound() {
             for column in 0..self.bottom_bound() {
                 if self.map[row][column] == first_letter {
-                    output += self.find_adjacents(search, row, column);
+                    output.append(&mut self.find_adjacents(search, row, column));
                 }
             }
         }
         return output;
     }
 
-    fn find_adjacents(&self, search: &str, row: usize, column: usize) -> usize {
-        let mut output = 0;
+    fn find_adjacents(&self, search: &str, row: usize, column: usize) -> Vec<Direction> {
+        let mut output = Vec::new();
         let length = search.len() - 1;
         for direction in Direction::all() {
             if !self.out_of_bounds(&direction, row, column, length) {
                 let word = self.collect_word(&direction, row, column, length);
                 if word.as_str() == search {
-                    output += 1;
+                    output.push(direction);
                 }
             }
         }
         return output;
     }
 
-    pub fn find_from_char(&self, search: &str, from: usize, row: usize, column: usize) -> usize {
-        let mut output = 0;
+    pub fn find_from_char(&self, search: &str, from: usize, row: usize, column: usize) -> Vec<Direction> {
+        let mut output = Vec::new();
         let (left, right) = split_from(search, from).expect("Don't misuse split_from");
-        let mut word = String::new();
-        for direction in [Direction::NorthEast, Direction::NorthWest, Direction::SouthEast, Direction::SouthWest] {
+        let mut word: String;
+        for direction in Direction::all() {
             if !self.out_of_bounds(&direction, row, column, left.len() - 1) 
             && !self.out_of_bounds(&direction.mirrored(), row, column, right.len() - 1) {
                 word = self.collect_word(&direction, row, column, left.len() - 1).chars().rev().collect();
@@ -119,7 +119,7 @@ impl CharMap {
                 if word != right {
                     continue;
                 }
-                output += 1;
+                output.push(direction);
             }
         }
         return output;
