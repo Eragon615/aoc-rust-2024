@@ -1,4 +1,4 @@
-use crate::{Application, utils::charmap::*};
+use crate::{utils::charmap::*, Application};
 
 
 
@@ -8,7 +8,7 @@ impl Application {
         if self.args.part == 1 {
             self.d4p1(char_map);
         } else {
-            self.d4p2();
+            self.d4p2(char_map);
         }
     }
 
@@ -17,8 +17,19 @@ impl Application {
         println!("{answer}");
     }
 
-    fn d4p2(self) {
-
+    fn d4p2(self, char_map: CharMap) {
+        let mut answer = 0;
+        for row in 0..char_map.map.len() {
+            for column in 0..char_map.map[row].len() {
+                if char_map.map[row][column] == 'A' {
+                    if char_map.find_from_char("MAS", 1, row, column) >= 2 {
+                        answer +=1
+                    }
+                    
+                }
+            }
+        }
+        println!("{answer}");
     }
 }
 

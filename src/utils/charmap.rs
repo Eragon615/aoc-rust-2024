@@ -1,6 +1,8 @@
+use crate::utils::strings::split_from;
+
 #[derive(Debug)]
 pub struct CharMap {
-    map: Vec<Vec<char>>
+    pub map: Vec<Vec<char>>
 }
 
 #[derive(Debug)]
@@ -39,6 +41,19 @@ impl Direction {
             Direction::SouthWest => (-1, 1),
             Direction::West => (-1, 0),
             Direction::NorthWest => (-1, -1)
+        }
+    }
+
+    fn mirrored(&self) -> Direction {
+        match self {
+            Direction::North => Direction::South,
+            Direction::NorthEast => Direction::SouthWest,
+            Direction::East => Direction::West,
+            Direction::SouthEast => Direction::NorthWest,
+            Direction::South => Direction::North,
+            Direction::SouthWest => Direction::NorthEast,
+            Direction::West => Direction::East,
+            Direction::NorthWest => Direction::SouthEast
         }
     }
 }
@@ -84,6 +99,27 @@ impl CharMap {
                 if word.as_str() == search {
                     output += 1;
                 }
+            }
+        }
+        return output;
+    }
+
+    pub fn find_from_char(&self, search: &str, from: usize, row: usize, column: usize) -> usize {
+        let mut output = 0;
+        let (left, right) = split_from(search, from).expect("Don't misuse split_from");
+        let mut word = String::new();
+        for direction in [Direction::NorthEast, Direction::NorthWest, Direction::SouthEast, Direction::SouthWest] {
+            if !self.out_of_bounds(&direction, row, column, left.len() - 1) 
+            && !self.out_of_bounds(&direction.mirrored(), row, column, right.len() - 1) {
+                word = self.collect_word(&direction, row, column, left.len() - 1).chars().rev().collect();
+                if word != left {
+                    continue;
+                }
+                word = self.collect_word(&direction.mirrored(), row, column, right.len() - 1);
+                if word != right {
+                    continue;
+                }
+                output += 1;
             }
         }
         return output;
