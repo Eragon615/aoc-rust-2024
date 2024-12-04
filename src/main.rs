@@ -1,5 +1,6 @@
 mod args;
 mod days;
+mod utils;
 
 use args::Args;
 use clap::Parser;
@@ -19,6 +20,7 @@ fn main() {
         1 => app.day1(),
         2 => app.day2(),
         3 => app.day3(),
+        4 => app.day4(),
         _ => println!("It is not yet the time..."),
     };
 }
