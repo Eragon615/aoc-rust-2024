@@ -1,5 +1,4 @@
-use core::num;
-use std::{collections::BTreeMap, intrinsics::needs_drop};
+use std::collections::BTreeMap;
 
 use crate::Application;
 
@@ -35,7 +34,7 @@ fn parser(input: &Vec<String>) -> (BTreeMap<usize, Vec<usize>>, Vec<Vec<usize>>)
     let mut line_num: usize = 0;
     let mut btree: BTreeMap<usize, Vec<usize>> = BTreeMap::new();
     let mut out_vec = Vec::new();
-    while !input[line_num].is_empty() {
+    while input[line_num] != "" {
         let mut split_line = input[line_num].split('|');
         let mut left = 0;
         let mut right = 0;
@@ -48,31 +47,37 @@ fn parser(input: &Vec<String>) -> (BTreeMap<usize, Vec<usize>>, Vec<Vec<usize>>)
         btree.entry(left).and_modify(|val| val.push(right)).or_insert(vec![right]);
         line_num += 1;
     }
-    line_num += 1;
-    while !input[line_num].is_empty() {
-        let mut counter = 0;
+    line_num += 1;        
+    let mut counter = 0;
+    while input[line_num] != "" {
+
         let mut split_line = input[line_num].split(',');
         out_vec.push(Vec::new());
         while let Some(num) = split_line.next() {
-            out_vec[counter].push(num);
+            out_vec[counter].push(num.parse().expect("There was a non-number in the second half."));
         }
         counter += 1;
         line_num += 1;
     }
+    println!("DEBUG: {btree:?}");
+    println!("DEBUG: {out_vec:?}");
     return (btree, out_vec);
 }
 
 fn entry_is_valid(rules: &BTreeMap<usize, Vec<usize>>, update: &Vec<usize>) -> bool {
     let mut response = true;
+    let mut update = update.clone();
+    update.reverse();
+    println!("{update:?}");
     for (idx, number) in update.iter().enumerate() {
         let rules_lookup = rules.get(number);
         if let Some(num_rules) = rules_lookup {
             for next_page in (idx + 1)..update.len() {
-                if !num_rules.contains(&next_page) {
+                if num_rules.contains(&next_page) {
                     response = false; 
                 }
             }
         }
     }
-    todo!()
+    return response;
 }
