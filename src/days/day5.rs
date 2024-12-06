@@ -8,13 +8,15 @@ impl Application {
         if self.args.part == 1 {
             self.d5p1(rules, updates);
         } else {
-            self.d5p2();
+            self.d5p2(rules, updates);
         }
     }
 
     fn d5p1(self, rules: BTreeMap<usize, Vec<usize>>, updates: Vec<Vec<usize>>) {
         let mut answer = 0;
         for update in updates {
+            let mut update = update.clone();
+            update.reverse();
             if entry_is_valid(&rules, &update) {
                 let midpoint = (update.len() - 1) / 2;
                 answer += update[midpoint];
@@ -23,9 +25,17 @@ impl Application {
         println!("{answer}");
     }
 
-    fn d5p2(self) {
+    fn d5p2(self, rules: BTreeMap<usize, Vec<usize>>, updates: Vec<Vec<usize>>) {
         let mut answer = 0;
-
+        for update in updates {
+            let mut update = update.clone();
+            update.reverse();
+            if !entry_is_valid(&rules, &update) {
+                let update = sort_by_rule(&update, &rules);
+                let midpoint = (update.len() - 1) / 2;
+                answer += update[midpoint];
+            }
+        }
         println!("{answer}");
     }
 }
@@ -49,7 +59,7 @@ fn parser(input: &Vec<String>) -> (BTreeMap<usize, Vec<usize>>, Vec<Vec<usize>>)
     }
     line_num += 1;        
     let mut counter = 0;
-    while input[line_num] != "" {
+    while line_num < input.len() {
 
         let mut split_line = input[line_num].split(',');
         out_vec.push(Vec::new());
@@ -59,25 +69,40 @@ fn parser(input: &Vec<String>) -> (BTreeMap<usize, Vec<usize>>, Vec<Vec<usize>>)
         counter += 1;
         line_num += 1;
     }
-    println!("DEBUG: {btree:?}");
-    println!("DEBUG: {out_vec:?}");
     return (btree, out_vec);
 }
 
 fn entry_is_valid(rules: &BTreeMap<usize, Vec<usize>>, update: &Vec<usize>) -> bool {
     let mut response = true;
-    let mut update = update.clone();
-    update.reverse();
-    println!("{update:?}");
     for (idx, number) in update.iter().enumerate() {
         let rules_lookup = rules.get(number);
         if let Some(num_rules) = rules_lookup {
             for next_page in (idx + 1)..update.len() {
-                if num_rules.contains(&next_page) {
+                if num_rules.contains(&update[next_page]) {
                     response = false; 
                 }
             }
         }
     }
     return response;
+}
+
+fn sort_by_rule(update: &Vec<usize>, rules: &BTreeMap<usize, Vec<usize>>) -> Vec<usize> {
+    let mut update = update.clone();
+    while !entry_is_valid(rules, &update) {
+        for idx in 0..update.len() {
+            let rules_lookup = rules.get(&update[idx]);
+            if let Some(num_rules) = rules_lookup {
+                for next_page in (idx + 1)..update.len() {
+                    if num_rules.contains(&update[next_page]) {
+                       let left = update[idx];
+                       let right = update[next_page];
+                       update[idx] = right;
+                       update[next_page] = left;
+                    }
+                }
+            }
+        }
+    }
+    return update;
 }
