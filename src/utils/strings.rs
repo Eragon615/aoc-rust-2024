@@ -3,9 +3,7 @@ use std::{error::Error, fmt};
 #[derive(Debug)]
 pub struct StringUtils;
 
-impl Error for StringUtils {
-    
-}
+impl Error for StringUtils {}
 
 impl fmt::Display for StringUtils {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

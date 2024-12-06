@@ -1,61 +1,8 @@
-use crate::utils::strings::split_from;
+use crate::utils::{strings::split_from, directions::*};
 
 #[derive(Debug)]
 pub struct CharMap {
     pub map: Vec<Vec<char>>
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum Direction {
-    North,
-    NorthEast,
-    East, 
-    SouthEast,
-    South,
-    SouthWest,
-    West,
-    NorthWest
-}
-
-impl Direction {
-    fn all() -> Vec<Direction> {
-        let mut output = Vec::new();
-        output.push(Direction::North);
-        output.push(Direction::NorthEast);
-        output.push(Direction::East);
-        output.push(Direction::SouthEast);
-        output.push(Direction::South);
-        output.push(Direction::SouthWest);
-        output.push(Direction::West);
-        output.push(Direction::NorthWest);
-        return output;
-    }
-
-    fn to_coordinates(&self) -> (i32, i32) {
-        match self {
-            Direction::North => (0, -1),
-            Direction::NorthEast => (1, -1),
-            Direction::East => (1, 0),
-            Direction::SouthEast => (1, 1),
-            Direction::South => (0, 1),
-            Direction::SouthWest => (-1, 1),
-            Direction::West => (-1, 0),
-            Direction::NorthWest => (-1, -1)
-        }
-    }
-
-    fn mirrored(&self) -> Direction {
-        match self {
-            Direction::North => Direction::South,
-            Direction::NorthEast => Direction::SouthWest,
-            Direction::East => Direction::West,
-            Direction::SouthEast => Direction::NorthWest,
-            Direction::South => Direction::North,
-            Direction::SouthWest => Direction::NorthEast,
-            Direction::West => Direction::East,
-            Direction::NorthWest => Direction::SouthEast
-        }
-    }
 }
 
 impl CharMap {
@@ -83,19 +30,20 @@ impl CharMap {
         for row in 0..self.right_bound() {
             for column in 0..self.bottom_bound() {
                 if self.map[row][column] == first_letter {
-                    output.append(&mut self.find_adjacents(search, row, column));
+                    let pos = Point::new(column as isize, row as isize);
+                    output.append(&mut self.find_adjacents(search, &pos));
                 }
             }
         }
         return output;
     }
 
-    fn find_adjacents(&self, search: &str, row: usize, column: usize) -> Vec<Direction> {
+    fn find_adjacents(&self, search: &str, start_pos: &Point) -> Vec<Direction> {
         let mut output = Vec::new();
         let length = search.len() - 1;
         for direction in Direction::all() {
-            if !self.out_of_bounds(&direction, row, column, length) {
-                let word = self.collect_word(&direction, row, column, length);
+            if !self.out_of_bounds(&direction, start_pos, length) {
+                let word = self.collect_word(&direction, start_pos, length);
                 if word.as_str() == search {
                     output.push(direction);
                 }
@@ -104,18 +52,18 @@ impl CharMap {
         return output;
     }
 
-    pub fn find_from_char(&self, search: &str, from: usize, row: usize, column: usize) -> Vec<Direction> {
+    pub fn find_from_char(&self, search: &str, from: usize, pos: &Point) -> Vec<Direction> {
         let mut output = Vec::new();
         let (left, right) = split_from(search, from).expect("Don't misuse split_from");
         let mut word: String;
         for direction in Direction::all() {
-            if !self.out_of_bounds(&direction, row, column, left.len() - 1) 
-            && !self.out_of_bounds(&direction.mirrored(), row, column, right.len() - 1) {
-                word = self.collect_word(&direction, row, column, left.len() - 1).chars().rev().collect();
+            if !self.out_of_bounds(&direction, pos, left.len() - 1) 
+            && !self.out_of_bounds(&direction.mirrored(), pos, right.len() - 1) {
+                word = self.collect_word(&direction, pos, left.len() - 1).chars().rev().collect();
                 if word != left {
                     continue;
                 }
-                word = self.collect_word(&direction.mirrored(), row, column, right.len() - 1);
+                word = self.collect_word(&direction.mirrored(), pos, right.len() - 1);
                 if word != right {
                     continue;
                 }
@@ -125,27 +73,26 @@ impl CharMap {
         return output;
     }
 
-    fn out_of_bounds(&self, direction: &Direction, row: usize, column: usize, length: usize) -> bool {
+    fn out_of_bounds(&self, direction: &Direction, pos: &Point, length: usize) -> bool {
         match direction {
-            Direction::North => { if length > row { return true } },
-            Direction::NorthEast => { if length > row || (length + column) >= self.right_bound() { return true } },
-            Direction::East => { if (length + column) >= self.right_bound() { return true } },
-            Direction::SouthEast => { if (length + column) >= self.right_bound() || (length + row) >= self.bottom_bound() { return true } },
-            Direction::South => { if (length + row) >= self.bottom_bound() { return  true } },
-            Direction::SouthWest => { if (length + row) >= self.bottom_bound() || length > column { return true } },
-            Direction::West => { if length > column { return true } },
-            Direction::NorthWest => { if length > row || length > column { return true } }
+            Direction::North => { if length > pos.y() as usize { return true } },
+            Direction::NorthEast => { if length > pos.y() as usize || (length + pos.x() as usize) >= self.right_bound() { return true } },
+            Direction::East => { if (length + pos.x() as usize) >= self.right_bound() { return true } },
+            Direction::SouthEast => { if (length + pos.x() as usize) >= self.right_bound() || (length + pos.y() as usize) >= self.bottom_bound() { return true } },
+            Direction::South => { if (length + pos.y() as usize) >= self.bottom_bound() { return  true } },
+            Direction::SouthWest => { if (length + pos.y() as usize) >= self.bottom_bound() || length > pos.x() as usize { return true } },
+            Direction::West => { if length > pos.y() as usize { return true } },
+            Direction::NorthWest => { if length > pos.y() as usize || length > pos.x() as usize { return true } }
         }
         return false;
     }
 
-    fn collect_word(&self, direction: &Direction, row: usize, column: usize, length: usize) -> String {
+    fn collect_word(&self, direction: &Direction, start_pos: &Point, length: usize) -> String {
         let mut output = String::new();
-        let (x_dir, y_dir) = direction.to_coordinates();
-            for count in 0..=length {
-                let new_x_pos = (column as i32 + (x_dir * count as i32)) as usize;
-                let new_y_pos = (row as i32 + (y_dir * count as i32)) as usize;
-                output.push(self.map[new_y_pos][new_x_pos]);
+        let mut pos = start_pos.clone();
+            for _ in 0..=length {
+                pos = pos + direction.to_coordinates();
+                output.push(self.map[pos.y() as usize][pos.x() as usize]);
             }
         return output;
     }
