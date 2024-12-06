@@ -1,4 +1,4 @@
-use crate::{utils::charmap::*, Application};
+use crate::{utils::{charmap::*, directions::Direction, point::Point}, Application};
 
 
 
@@ -21,8 +21,9 @@ impl Application {
         let mut answer = 0;
         for row in 0..char_map.map.len() {
             for column in 0..char_map.map[row].len() {
+                let pos = Point::new(column as isize, row as isize);
                 if char_map.map[row][column] == 'A' {
-                    if char_map.find_from_char("MAS", 1, row, column)
+                    if char_map.find_from_char("MAS", 1, &pos)
                         .iter()
                         .filter(
                             |dir| match dir {
