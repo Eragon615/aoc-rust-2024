@@ -2,12 +2,14 @@ pub use super::{directions::*, point::Point};
 
 #[allow(unused, dead_code)]
 
+#[derive(Debug, Clone)]
 pub struct TravelMap {
     pub map: Vec<Vec<char>>,
     pub location: Point,
     pub direction: Direction
 }
 
+#[allow(unused, dead_code)]
 impl TravelMap {
     pub fn new_from_input(input: &Vec<String>, start: char, direction: Direction) -> Self {
         let mut map: Vec<Vec<char>> = Vec::new();
@@ -24,12 +26,14 @@ impl TravelMap {
         return Self { map, location, direction };
     }
 
-    pub fn adjacent(&self) -> Option<char> {
-        if self.out_of_bounds(&self.direction) {
-            return None;
+    pub fn adjacent(&self, direction: &Direction) -> Option<char> {
+        let target = self.location + direction.to_coordinates();
+        if let Some(row) =  self.map.get(target.y() as usize) {
+            if let Some(tile) = row.get(target.x() as usize) {
+                return Some(*tile);
+            }
         }
-        let target = self.location + self.direction.to_coordinates();
-        return Some(self.map[target.y() as usize][target.x() as usize]);
+        return None;
     }
 
     pub fn move_by_one(&mut self) {
@@ -40,29 +44,26 @@ impl TravelMap {
         self.direction = self.direction.turn90();
     }
 
-    fn out_of_bounds(&self, direction: &Direction) -> bool {
-        match direction {
-            Direction::North => { if self.location.y() == 0 { return true } },
-            Direction::NorthEast => { if self.location.y() == 0 || self.location.x() == self.right_bound_at_num((self.location.y() - 1) as usize) { return true } },
-            Direction::East => { if self.location.x() == self.right_bound_at_pos() { return true } },
-            Direction::SouthEast => { if self.location.x() == self.right_bound_at_num((self.location.y() + 1) as usize) || self.location.y() == self.bottom_bound() - 1 { return true } },
-            Direction::South => { if self.location.y() == self.bottom_bound() - 1 { return  true } },
-            Direction::SouthWest => { if self.location.y() == self.bottom_bound() - 1 || self.location.x() == 0 { return true } },
-            Direction::West => { if self.location.x() == 0 { return true } },
-            Direction::NorthWest => { if self.location.y() == 0 || self.location.x() == 0 { return true } }
+    fn char_at_pos(&self, pos: Point) -> Option<char> {
+        if let Some(row) =  self.map.get(pos.y() as usize) {
+            if let Some(tile) = row.get(pos.x() as usize) {
+                return Some(*tile);
+            }
         }
-        return false;
+        return None;
     }
 
-    fn bottom_bound(&self) -> isize {
-        return self.map.len() as isize;
-    }
-
-    fn right_bound_at_pos(&self) -> isize {
-        return self.map[self.location.y() as usize].len() as isize;
-    }
-
-    fn right_bound_at_num(&self, line: usize) -> isize {
-        return self.map[line].len() as isize;
+    pub fn ray_cast_until(&self, direction: &Direction, object: char) -> Vec<Point> {
+        let mut cast_pos = self.location;
+        let mut output = Vec::new();
+        while let Some(tile) = self.char_at_pos(cast_pos) {
+            if tile != object {
+                output.push(cast_pos);
+                cast_pos = cast_pos + direction.to_coordinates();
+            } else {
+                break;
+            }
+        }
+        return output;
     }
 }

@@ -2,7 +2,7 @@ pub use crate::utils::point::*;
 
 #[allow(unused)]
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
     North,
     NorthEast,
@@ -12,11 +12,6 @@ pub enum Direction {
     SouthWest,
     West,
     NorthWest
-}
-
-pub enum Turn {
-    Right,
-    Left
 }
 
 impl Direction {
