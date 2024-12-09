@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use crate::utils::{strings::split_from, directions::*};
 
 #[derive(Debug)]
@@ -83,6 +85,33 @@ impl CharMap {
             Direction::SouthWest => { if (length + pos.y() as usize) >= self.bottom_bound() || length > pos.x() as usize { return true } },
             Direction::West => { if length > pos.y() as usize { return true } },
             Direction::NorthWest => { if length > pos.y() as usize || length > pos.x() as usize { return true } }
+        }
+        return false;
+    }
+
+    pub fn gather_points(&self, btree: &mut BTreeMap<char, Vec<Point>>, exclude: &Vec<char>) {
+        for row in 0..self.map.len() {
+            for column in 0..self.map[row].len() {
+                let key = &self.map[row][column];
+                if exclude.contains(key) {
+                    continue;
+                }
+                if btree.contains_key(key) {
+                    if let Some(value) = btree.get_mut(key) {
+                        value.push(Point::new(column as isize, row as isize));
+                    }
+                } else {
+                    btree.insert(*key, vec![Point::new(column as isize, row as isize)]);
+                }
+            }
+        }
+    }
+
+    pub fn is_in_bounds(&self, point: Point) -> bool {
+        if let Some(_) = self.map.get(point.y() as usize) {
+            if let Some(_) = self.map.get(point.x() as usize) {
+                return true;
+            }
         }
         return false;
     }

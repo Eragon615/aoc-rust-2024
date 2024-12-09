@@ -43,6 +43,7 @@ impl Application {
             if tile != '^' {
                 let obstruction_at = travel_map.location + travel_map.direction.to_coordinates();
                 // println!("MAIN: I'm placing an object at {:?}", obstruction_at);
+
                 let mut new_map = travel_map.clone();
                 new_map.map[obstruction_at.y() as usize][obstruction_at.x() as usize] = '#';
                 // println!("MAIN: I'm checking if that obstruction results in a loop.");
@@ -54,9 +55,9 @@ impl Application {
                 }
             }
             _ = travel_history.insert((travel_map.location, travel_map.direction));
+
             travel_map.move_by_one();
         }
-
         println!("{}", answers.len());
     }
 }
